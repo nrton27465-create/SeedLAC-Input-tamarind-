@@ -3,119 +3,244 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>สต็อกออนไลน์</title>
+<title>สต็อกการ์ดออนไลน์</title>
 
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode/minified/html5-qrcode.min.js"></script>
 
 <style>
 body {
   font-family: Arial, sans-serif;
-  background: linear-gradient(to bottom, #0f172a, #1e3a8a);
-  color: white;
   margin: 0;
-  padding: 20px;
+  padding: 0;
+  background: linear-gradient(to bottom, #0f172a, #1e3a8a);
+  color: #fff;
+  overflow-x: hidden;
 }
-h1 { font-size: 40px; text-align: center; }
-table { width: 100%; background: white; color: black; margin-top:20px; }
-th, td { padding: 12px; border: 1px solid #ddd; }
-button { padding: 15px; font-size: 20px; margin-top:15px; width:100%; }
-select, input, textarea { width:100%; padding:10px; font-size:18px; }
+
+.container {
+  max-width: 100%;
+  width: 100%;
+  margin: auto;
+  background: #1e293b;
+  color: #fff;
+  border-radius: 15px;
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+h1 {
+  text-align: center;
+  color: #93c5fd;
+  font-size: 96px;
+}
+
+.form-group {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.form-group label {
+  font-weight: bold;
+  color: #cbd5e1;
+  font-size: 48px;
+  margin-right: 20px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 30px;
+  background: #ffffff;
+  color: #000;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+th, td {
+  padding: 24px;
+  text-align: left;
+  border: 1px solid #ddd;
+  font-size: 48px;
+}
+
+th {
+  background-color: #2563eb;
+  color: white;
+  text-align: center;
+}
+
+td:first-child {
+  width: 60%;
+}
+
+select, input, textarea {
+  width: 100%;
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid #64748b;
+  font-size: 48px;
+  background: #334155;
+  color: #fff;
+  box-sizing: border-box;
+}
+
+button {
+  width: 100%;
+  margin-top: 30px;
+  padding: 12px;
+  background: #2563eb;
+  color: white;
+  font-size: 54px;
+  cursor: pointer;
+  border: none;
+  border-radius: 10px;
+}
+
+button:hover {
+  background: #1e40af;
+}
+
+.loading-message {
+  font-size: 36px;
+  color: #f59e0b;
+  display: none;
+}
 </style>
 </head>
 
 <body>
 
+<div class="container">
+
 <h1>สต็อก มะขาม</h1>
 
-<button onclick="scanQRCode()">สแกน QR</button>
-<div id="qr-result"></div>
+<button onclick="scanQRCode()">สแกน QR Code</button>
 
-<select id="item-select"></select>
-<input type="number" id="quantity" placeholder="จำนวน">
+<div id="qr-result" style="margin-top:20px;font-size:58px;"></div>
 
-<table>
+<table id="selection-table">
+<thead>
+<tr><th>เลือกรายการ</th><th>จำนวน</th></tr>
+</thead>
+<tbody>
+<tr>
+<td><select id="item-select"></select></td>
+<td><input type="number" id="quantity" placeholder="จำนวน" min="1"></td>
+</tr>
+</tbody>
+</table>
+
+<table id="items-table">
 <thead>
 <tr><th>รายการ</th><th>เหลือ</th><th>เบิก</th></tr>
 </thead>
 <tbody id="items"></tbody>
 </table>
 
-<textarea id="note" placeholder="หมายเหตุ"></textarea>
+<div class="form-group">
+<label>หมายเหตุ</label>
+<textarea id="note" rows="3"></textarea>
+</div>
+
+<div class="loading-message" id="loading-message">
+กำลังบันทึกข้อมูล...
+</div>
 
 <button onclick="submitRequest()">บันทึก</button>
 
+</div>
+
 <script>
 
-const API = "https://script.google.com/macros/s/AKfycbwckPFHHRMDkQc6NNVNx7WzLwy3KI_xaqyWLezLiusVKliVJ100sew5TPc7gR8GnW2wDg/exec"; // 🔴 ใส่ URL ของคุณ
+const API = "https://script.google.com/macros/s/AKfycbwckPFHHRMDkQc6NNVNx7WzLwy3KI_xaqyWLezLiusVKliVJ100sew5TPc7gR8GnW2wDg/exec"; // 🔴 ใส่ Web App URL
 
-async function fetchDropdown() {
+async function fetchItems() {
   const res = await fetch(API + "?action=getDropdown");
-  const data = await res.json();
+  const items = await res.json();
+
   const select = document.getElementById("item-select");
   select.innerHTML = "";
-  data.forEach(item => {
-    const opt = document.createElement("option");
-    opt.value = item;
-    opt.textContent = item;
-    select.appendChild(opt);
+
+  items.forEach(item => {
+    const option = document.createElement("option");
+    option.value = item;
+    option.textContent = item;
+    select.appendChild(option);
   });
 }
 
-async function getByQR(qr) {
-  const res = await fetch(API + "?action=getByQR&qr=" + qr);
-  const data = await res.json();
-  renderItems(data);
+async function getItemByQR(qrCode) {
+  const res = await fetch(API + "?action=getByQR&qr=" + qrCode);
+  const items = await res.json();
+  renderItems(items);
 }
 
 function renderItems(items) {
   const tbody = document.getElementById("items");
   tbody.innerHTML = "";
+
   items.forEach(item => {
     tbody.innerHTML += `
       <tr>
-        <td>${item.name}</td>
-        <td>${item.stock}</td>
-        <td><input type="number" min="0"></td>
+        <td>${item.name || 'ไม่มีข้อมูล'}</td>
+        <td>${item.stock || 0}</td>
+        <td><input type="number" min="0" /></td>
       </tr>`;
   });
 }
 
 function scanQRCode() {
-  const qrCodeReader = new Html5Qrcode("qr-result");
-  qrCodeReader.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
-    (decodedText) => {
-      qrCodeReader.stop();
-      document.getElementById("qr-result").innerText = decodedText;
-      getByQR(decodedText);
-    });
+  const qrReader = new Html5Qrcode("qr-result");
+
+  qrReader.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 250 },
+    decodedText => {
+      qrReader.stop();
+      document.getElementById("qr-result").innerText =
+        "หมายเลขชั้นจัดเก็บ: " + decodedText;
+      getItemByQR(decodedText);
+    }
+  );
 }
 
 async function submitRequest() {
 
-  const qrCode = document.getElementById("qr-result").innerText;
+  document.getElementById("loading-message").style.display = "block";
+
+  const qrCode = document.getElementById("qr-result")
+    .innerText.replace("หมายเลขชั้นจัดเก็บ: ", "").trim();
+
   const note = document.getElementById("note").value;
   const timestamp = new Date().toISOString();
-  const rows = document.querySelectorAll("#items tr");
+  const rows = document.querySelectorAll("#items-table tbody tr");
 
   let data = [];
 
   const selectedItem = document.getElementById("item-select").value;
-  const selectedQty = Number(document.getElementById("quantity").value);
+  const selectedQuantity = Number(document.getElementById("quantity").value);
 
-  if (selectedQty > 0) {
-    data.push({ timestamp, qrCode, item: selectedItem, quantity: selectedQty, note });
+  if (selectedItem && selectedQuantity > 0) {
+    data.push({ timestamp, qrCode, item: selectedItem, quantity: selectedQuantity, note });
   }
 
   rows.forEach(row => {
     const item = row.cells[0].innerText;
-    const qty = Number(row.cells[2].querySelector("input").value);
-    if (qty > 0) {
-      data.push({ timestamp, qrCode, item, quantity: qty, note });
+    const quantity = Number(row.cells[2].querySelector("input").value) || 0;
+    if (quantity > 0) {
+      data.push({ timestamp, qrCode, item, quantity, note });
     }
   });
 
   if (data.length === 0) {
-    alert("กรุณาใส่จำนวน");
+    alert("⚠️ กรุณาเลือกสินค้าหรือกรอกจำนวนก่อนบันทึก");
+    document.getElementById("loading-message").style.display = "none";
     return;
   }
 
@@ -124,11 +249,11 @@ async function submitRequest() {
     body: JSON.stringify(data)
   });
 
-  alert("บันทึกสำเร็จ");
+  alert("✅ บันทึกข้อมูลสำเร็จ!");
   location.reload();
 }
 
-fetchDropdown();
+window.onload = fetchItems;
 
 </script>
 
