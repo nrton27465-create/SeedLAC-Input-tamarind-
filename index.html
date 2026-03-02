@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>สต็อกออนไลน์</title>
+
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode/minified/html5-qrcode.min.js"></script>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: linear-gradient(to bottom, #0f172a, #1e3a8a);
+  color: white;
+  margin: 0;
+  padding: 20px;
+}
+h1 { font-size: 40px; text-align: center; }
+table { width: 100%; background: white; color: black; margin-top:20px; }
+th, td { padding: 12px; border: 1px solid #ddd; }
+button { padding: 15px; font-size: 20px; margin-top:15px; width:100%; }
+select, input, textarea { width:100%; padding:10px; font-size:18px; }
+</style>
+</head>
+
+<body>
+
+<h1>สต็อก มะขาม</h1>
+
+<button onclick="scanQRCode()">สแกน QR</button>
+<div id="qr-result"></div>
+
+<select id="item-select"></select>
+<input type="number" id="quantity" placeholder="จำนวน">
+
+<table>
+<thead>
+<tr><th>รายการ</th><th>เหลือ</th><th>เบิก</th></tr>
+</thead>
+<tbody id="items"></tbody>
+</table>
+
+<textarea id="note" placeholder="หมายเหตุ"></textarea>
+
+<button onclick="submitRequest()">บันทึก</button>
+
+<script>
+
+const API = "https://script.google.com/macros/s/AKfycbwckPFHHRMDkQc6NNVNx7WzLwy3KI_xaqyWLezLiusVKliVJ100sew5TPc7gR8GnW2wDg/exec"; // 🔴 ใส่ URL ของคุณ
+
+async function fetchDropdown() {
+  const res = await fetch(API + "?action=getDropdown");
+  const data = await res.json();
+  const select = document.getElementById("item-select");
+  select.innerHTML = "";
+  data.forEach(item => {
+    const opt = document.createElement("option");
+    opt.value = item;
+    opt.textContent = item;
+    select.appendChild(opt);
+  });
+}
+
+async function getByQR(qr) {
+  const res = await fetch(API + "?action=getByQR&qr=" + qr);
+  const data = await res.json();
+  renderItems(data);
+}
+
+function renderItems(items) {
+  const tbody = document.getElementById("items");
+  tbody.innerHTML = "";
+  items.forEach(item => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${item.name}</td>
+        <td>${item.stock}</td>
+        <td><input type="number" min="0"></td>
+      </tr>`;
+  });
+}
+
+function scanQRCode() {
+  const qrCodeReader = new Html5Qrcode("qr-result");
+  qrCodeReader.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
+    (decodedText) => {
+      qrCodeReader.stop();
+      document.getElementById("qr-result").innerText = decodedText;
+      getByQR(decodedText);
+    });
+}
+
+async function submitRequest() {
+
+  const qrCode = document.getElementById("qr-result").innerText;
+  const note = document.getElementById("note").value;
+  const timestamp = new Date().toISOString();
+  const rows = document.querySelectorAll("#items tr");
+
+  let data = [];
+
+  const selectedItem = document.getElementById("item-select").value;
+  const selectedQty = Number(document.getElementById("quantity").value);
+
+  if (selectedQty > 0) {
+    data.push({ timestamp, qrCode, item: selectedItem, quantity: selectedQty, note });
+  }
+
+  rows.forEach(row => {
+    const item = row.cells[0].innerText;
+    const qty = Number(row.cells[2].querySelector("input").value);
+    if (qty > 0) {
+      data.push({ timestamp, qrCode, item, quantity: qty, note });
+    }
+  });
+
+  if (data.length === 0) {
+    alert("กรุณาใส่จำนวน");
+    return;
+  }
+
+  await fetch(API, {
+    method: "POST",
+    body: JSON.stringify(data)
+  });
+
+  alert("บันทึกสำเร็จ");
+  location.reload();
+}
+
+fetchDropdown();
+
+</script>
+
+</body>
+</html>
