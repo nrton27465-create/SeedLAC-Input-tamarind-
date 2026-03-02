@@ -14,59 +14,60 @@ body {
   padding: 0;
   background: linear-gradient(to bottom, #0f172a, #1e3a8a);
   color: #fff;
-  overflow-x: hidden;
 }
 
 .container {
-  max-width: 100%;
-  width: 100%;
-  margin: auto;
+  max-width: 1100px;
+  width: 95%;
+  margin: 20px auto;
   background: #1e293b;
-  color: #fff;
-  border-radius: 15px;
-  padding: 20px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  border-radius: 12px;
+  padding: 15px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.4);
 }
 
 h1 {
   text-align: center;
   color: #93c5fd;
-  font-size: 96px;
+  font-size: 48px; /* เดิม 96 */
+  margin-bottom: 10px;
 }
 
-.form-group {
+button {
   width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 20px;
+  margin-top: 15px;
+  padding: 10px;
+  background: #2563eb;
+  color: white;
+  font-size: 24px; /* เดิม 54 */
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
 }
 
-.form-group label {
-  font-weight: bold;
-  color: #cbd5e1;
-  font-size: 48px;
-  margin-right: 20px;
+button:hover {
+  background: #1e40af;
+}
+
+#qr-result {
+  margin-top: 10px;
+  font-size: 28px; /* เดิม 58 */
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 30px;
+  margin-top: 20px;
   background: #ffffff;
   color: #000;
   border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  overflow: hidden;
 }
 
 th, td {
-  padding: 24px;
-  text-align: left;
+  padding: 12px; /* เดิม 24 */
   border: 1px solid #ddd;
-  font-size: 48px;
+  font-size: 22px; /* เดิม 48 */
 }
 
 th {
@@ -81,35 +82,29 @@ td:first-child {
 
 select, input, textarea {
   width: 100%;
-  padding: 16px;
-  border-radius: 10px;
+  padding: 8px; /* เดิม 16 */
+  border-radius: 6px;
   border: 1px solid #64748b;
-  font-size: 48px;
+  font-size: 20px; /* เดิม 48 */
   background: #334155;
   color: #fff;
   box-sizing: border-box;
 }
 
-button {
-  width: 100%;
-  margin-top: 30px;
-  padding: 12px;
-  background: #2563eb;
-  color: white;
-  font-size: 54px;
-  cursor: pointer;
-  border: none;
-  border-radius: 10px;
+.form-group {
+  margin-top: 15px;
 }
 
-button:hover {
-  background: #1e40af;
+.form-group label {
+  font-size: 22px; /* เดิม 48 */
+  font-weight: bold;
 }
 
 .loading-message {
-  font-size: 36px;
+  font-size: 18px; /* เดิม 36 */
   color: #f59e0b;
   display: none;
+  margin-top: 10px;
 }
 </style>
 </head>
@@ -122,9 +117,9 @@ button:hover {
 
 <button onclick="scanQRCode()">สแกน QR Code</button>
 
-<div id="qr-result" style="margin-top:20px;font-size:58px;"></div>
+<div id="qr-result"></div>
 
-<table id="selection-table">
+<table>
 <thead>
 <tr><th>เลือกรายการ</th><th>จำนวน</th></tr>
 </thead>
@@ -145,7 +140,7 @@ button:hover {
 
 <div class="form-group">
 <label>หมายเหตุ</label>
-<textarea id="note" rows="3"></textarea>
+<textarea id="note" rows="2"></textarea>
 </div>
 
 <div class="loading-message" id="loading-message">
@@ -158,7 +153,7 @@ button:hover {
 
 <script>
 
-const API = "https://script.google.com/macros/s/AKfycbzAz2UsNyFIeSCPbBRJL7_D3xEPBitgrzBCyOOoZi-IUrWkmE6dbL08IMIpAfYSue2GCQ/exec"; // 🔴 ใส่ Web App URL
+const API = "https://script.google.com/macros/s/AKfycbwckPFHHRMDkQc6NNVNx7WzLwy3KI_xaqyWLezLiusVKliVJ100sew5TPc7gR8GnW2wDg/exec";
 
 async function fetchItems() {
   const res = await fetch(API + "?action=getDropdown");
@@ -200,7 +195,7 @@ function scanQRCode() {
 
   qrReader.start(
     { facingMode: "environment" },
-    { fps: 10, qrbox: 250 },
+    { fps: 10, qrbox: 200 },
     decodedText => {
       qrReader.stop();
       document.getElementById("qr-result").innerText =
